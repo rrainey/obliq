@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import ProtectedRoute from '@/lib/auth/ProtectedRoute';
 import { useAuth } from '@/lib/auth/AuthContext';
 import Link from 'next/link';
@@ -19,6 +20,30 @@ export default function EditorPage() {
 
 function EditorContent() {
   const { user } = useAuth();
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [showProperties, setShowProperties] = useState(false);
+  
+  // Handle properties button click
+  const handleShowProperties = useCallback(() => {
+    if (selectedNodeId) {
+      setShowProperties(true);
+    }
+  }, [selectedNodeId]);
+  
+  // Update selected node
+  const handleNodeSelect = useCallback((nodeId: string | null) => {
+    setSelectedNodeId(nodeId);
+    
+    // Auto-hide properties panel when deselecting a node
+    if (!nodeId) {
+      setShowProperties(false);
+    }
+  }, []);
+  
+  // Close properties panel
+  const handleCloseProperties = useCallback(() => {
+    setShowProperties(false);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -40,7 +65,10 @@ function EditorContent() {
       </header>
 
       {/* Toolbar */}
-      <Toolbar />
+      <Toolbar 
+        selectedNodeId={selectedNodeId} 
+        onShowProperties={handleShowProperties} 
+      />
 
       {/* Main content */}
       <main className="flex-grow flex">
@@ -49,7 +77,11 @@ function EditorContent() {
 
         {/* Canvas */}
         <ReactFlowProvider>
-          <Canvas />
+          <Canvas 
+            onNodeSelect={handleNodeSelect}
+            showProperties={showProperties}
+            onCloseProperties={handleCloseProperties}
+          />
         </ReactFlowProvider>
       </main>
 

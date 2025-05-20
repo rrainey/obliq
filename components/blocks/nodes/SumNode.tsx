@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { memo } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
-import { withNodeDataHandling } from '../withNodeDataHandling';
 
 export interface SumNodeData {
   label: string;
@@ -10,18 +9,14 @@ export interface SumNodeData {
   inputCount: number;
 }
 
-interface SumNodeProps extends NodeProps<SumNodeData> {
-  onNodeDataChange?: (nodeId: string, data: Partial<SumNodeData>) => void;
-}
-
-const SumNode = ({ data, selected, id, isConnectable, onNodeDataChange }: SumNodeProps) => {
+const SumNode = ({ 
+  data, 
+  selected, 
+  id, 
+  isConnectable 
+}: NodeProps<SumNodeData>) => {
   // Default to 2 inputs if not specified
-  const [inputCount, setInputCount] = useState(data.inputCount || 2);
-
-  // Update state when props change
-  useEffect(() => {
-    setInputCount(data.inputCount || 2);
-  }, [data.inputCount]);
+  const inputCount = data.inputCount || 2;
 
   // Generate input handles based on count
   const renderInputHandles = () => {
@@ -45,56 +40,18 @@ const SumNode = ({ data, selected, id, isConnectable, onNodeDataChange }: SumNod
     
     return handles;
   };
-  
-  const addInput = () => {
-    const newCount = inputCount + 1;
-    setInputCount(newCount);
-    if (onNodeDataChange) {
-      onNodeDataChange(id, { inputCount: newCount });
-    }
-  };
-  
-  const removeInput = () => {
-    if (inputCount > 2) {
-      const newCount = inputCount - 1;
-      setInputCount(newCount);
-      if (onNodeDataChange) {
-        onNodeDataChange(id, { inputCount: newCount });
-      }
-    }
-  };
 
   return (
     <div className={`px-4 py-4 shadow-md rounded-md bg-white border-2 ${
       selected ? 'border-blue-500' : 'border-gray-300'
-    } min-w-[100px] min-h-[100px] flex flex-col`}>
+    } min-w-[100px] min-h-[100px] flex flex-col items-center justify-center`}>
       {/* Input handles */}
       {renderInputHandles()}
 
       {/* Block content */}
-      <div className="flex flex-col items-center mb-2">
+      <div className="flex flex-col items-center">
         <div className="text-xs text-gray-500 mb-1">{data.label}</div>
         <div className="text-3xl font-bold">+</div>
-      </div>
-      
-      {/* Add/remove input buttons */}
-      <div className="flex justify-center space-x-2 mt-2">
-        <button 
-          className="px-2 py-1 bg-gray-200 rounded text-xs nodrag"
-          onClick={addInput}
-          type="button"
-        >
-          + Input
-        </button>
-        {inputCount > 2 && (
-          <button 
-            className="px-2 py-1 bg-gray-200 rounded text-xs nodrag"
-            onClick={removeInput}
-            type="button"
-          >
-            - Input
-          </button>
-        )}
       </div>
 
       {/* Output handle */}
@@ -109,4 +66,4 @@ const SumNode = ({ data, selected, id, isConnectable, onNodeDataChange }: SumNod
   );
 };
 
-export default withNodeDataHandling(SumNode);
+export default memo(SumNode);

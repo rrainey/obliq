@@ -3,7 +3,12 @@
 import { useState } from 'react';
 import { useModelStore } from '@/lib/store/modelStore';
 
-export default function Toolbar() {
+interface ToolbarProps {
+  selectedNodeId: string | null;
+  onShowProperties: () => void;
+}
+
+export default function Toolbar({ selectedNodeId, onShowProperties }: ToolbarProps) {
   const [showJson, setShowJson] = useState(false);
   const { model } = useModelStore();
 
@@ -24,7 +29,19 @@ export default function Toolbar() {
           Generate C Code
         </button>
         <div className="border-l border-gray-300 h-6 mx-2"></div>
-        <button 
+        <button
+          className={`px-3 py-1 rounded text-sm ${
+            selectedNodeId
+              ? 'bg-indigo-500 hover:bg-indigo-600 text-white'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+          onClick={onShowProperties}
+          disabled={!selectedNodeId}
+        >
+          Properties
+        </button>
+        <div className="border-l border-gray-300 h-6 mx-2"></div>
+        <button
           className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
           onClick={() => setShowJson(!showJson)}
         >

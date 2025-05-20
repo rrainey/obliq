@@ -1,8 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { memo } from 'react';
+import { useCallback } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
-import { withNodeDataHandling } from '../withNodeDataHandling';
 
 export interface DisplayNodeData {
   label: string;
@@ -18,17 +18,12 @@ export interface DisplayNodeData {
   showSettings?: boolean;
 }
 
-interface DisplayNodeProps extends NodeProps<DisplayNodeData> {
-  onNodeDataChange?: (nodeId: string, data: Partial<DisplayNodeData>) => void;
-}
-
 const DisplayNode = ({ 
   data, 
   selected, 
   id, 
-  isConnectable, 
-  onNodeDataChange 
-}: DisplayNodeProps) => {
+  isConnectable
+}: NodeProps<DisplayNodeData>) => {
   // Default values
   const displayMode = data.displayMode || 'value';
   const min = data.min ?? 0;
@@ -37,37 +32,7 @@ const DisplayNode = ({
   const showUnit = data.showUnit ?? true;
   const showSettings = data.showSettings ?? false;
   
-  // Refs for interactive elements
-  const settingsButtonRef = useRef<HTMLButtonElement>(null);
-  
-  // We'll use a useEffect with a cleanup function to add direct DOM event listeners
-  useEffect(() => {
-    // Settings toggle handler - using direct DOM events
-    const handleSettingsClick = (e: MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      if (onNodeDataChange) {
-        onNodeDataChange(id, { showSettings: !showSettings });
-      }
-      
-      return false;
-    };
-    
-    // Add event listeners to refs
-    if (settingsButtonRef.current) {
-      settingsButtonRef.current.addEventListener('mousedown', handleSettingsClick, { capture: true });
-      settingsButtonRef.current.addEventListener('click', handleSettingsClick, { capture: true });
-    }
-    
-    // Cleanup
-    return () => {
-      if (settingsButtonRef.current) {
-        settingsButtonRef.current.removeEventListener('mousedown', handleSettingsClick);
-        settingsButtonRef.current.removeEventListener('click', handleSettingsClick);
-      }
-    };
-  }, [id, onNodeDataChange, showSettings]);
+
   
   // Format the display value
   const formattedValue = useCallback(() => {
@@ -88,14 +53,7 @@ const DisplayNode = ({
     
     const percentage = ((data.value - min) / (max - min)) * 100;
     return Math.max(0, Math.min(percentage, 100)); // Clamp between 0-100
-  }, [data.value, min, max]);
-
-  // Handle various form control changes - for settings panel
-  const handleFormChange = useCallback((field: string, value: any) => {
-    if (onNodeDataChange) {
-      onNodeDataChange(id, { [field]: value });
-    }
-  }, [id, onNodeDataChange]);
+  }, [data.value, min, max]);;
 
   return (
     <div 
@@ -114,109 +72,6 @@ const DisplayNode = ({
 
       {/* Block content */}
       <div className="flex flex-col">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium">{data.label}</span>
-          <button 
-            ref={settingsButtonRef}
-            className="text-xs bg-gray-200 hover:bg-gray-300 p-1 rounded nodrag"
-            type="button"
-          >
-            {showSettings ? 'Hide' : 'Settings'}
-          </button>
-        </div>
-        
-        {/* Settings panel */}
-        {showSettings && (
-          <div className="mb-3 p-2 bg-gray-50 rounded border text-xs">
-            <div className="mb-2">
-              <label className="block text-gray-600 mb-1">Display Mode:</label>
-              <select 
-                value={displayMode}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  handleFormChange('displayMode', e.target.value);
-                }}
-                className="w-full p-1 text-xs border rounded nodrag"
-              >
-                <option value="value">Value</option>
-                <option value="gauge">Gauge</option>
-                <option value="indicator">Indicator</option>
-              </select>
-            </div>
-            
-            {displayMode === 'gauge' && (
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <div>
-                  <label className="block text-gray-600 mb-1">Min:</label>
-                  <input 
-                    type="number"
-                    value={min}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleFormChange('min', parseFloat(e.target.value));
-                    }}
-                    className="w-full p-1 text-xs border rounded nodrag"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-600 mb-1">Max:</label>
-                  <input 
-                    type="number"
-                    value={max}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleFormChange('max', parseFloat(e.target.value));
-                    }}
-                    className="w-full p-1 text-xs border rounded nodrag"
-                  />
-                </div>
-              </div>
-            )}
-            
-            <div className="mb-2">
-              <label className="block text-gray-600 mb-1">Precision:</label>
-              <input 
-                type="number"
-                min="0"
-                max="10"
-                value={precision}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  handleFormChange('precision', parseInt(e.target.value, 10));
-                }}
-                className="w-full p-1 text-xs border rounded nodrag"
-              />
-            </div>
-            
-            <div className="mb-2">
-              <label className="block text-gray-600 mb-1">Unit:</label>
-              <div className="flex">
-                <input 
-                  type="text"
-                  value={data.unit || ''}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    handleFormChange('unit', e.target.value);
-                  }}
-                  className="flex-grow p-1 text-xs border rounded-l nodrag"
-                  placeholder="e.g., m/s"
-                />
-                <div className="flex items-center px-2 border border-l-0 rounded-r bg-white">
-                  <input 
-                    type="checkbox"
-                    checked={showUnit}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      handleFormChange('showUnit', e.target.checked);
-                    }}
-                    className="mr-1 nodrag"
-                  />
-                  <span className="text-xs">Show</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
         
         {/* Value display - different modes */}
         {displayMode === 'value' && (
@@ -279,4 +134,4 @@ const DisplayNode = ({
   );
 };
 
-export default withNodeDataHandling(DisplayNode);
+export default memo(DisplayNode);

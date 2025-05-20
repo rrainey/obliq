@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { memo } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
-import { withNodeDataHandling } from '../withNodeDataHandling';
 
 export interface MultiplyNodeData {
   label: string;
@@ -14,14 +13,9 @@ interface MultiplyNodeProps extends NodeProps<MultiplyNodeData> {
   onNodeDataChange?: (nodeId: string, data: Partial<MultiplyNodeData>) => void;
 }
 
-const MultiplyNode = ({ data, selected, id, isConnectable, onNodeDataChange }: MultiplyNodeProps) => {
-  // Default to 2 inputs if not specified
-  const [inputCount, setInputCount] = useState(data.inputCount || 2);
-
-  // Update state when props change
-  useEffect(() => {
-    setInputCount(data.inputCount || 2);
-  }, [data.inputCount]);
+const MultiplyNode = ({ data, selected, id, isConnectable }: NodeProps<MultiplyNodeData>) => {
+   // Default to 2 inputs if not specified
+  const inputCount = data.inputCount || 2;
 
   // Generate input handles based on count
   const renderInputHandles = () => {
@@ -45,24 +39,6 @@ const MultiplyNode = ({ data, selected, id, isConnectable, onNodeDataChange }: M
     
     return handles;
   };
-  
-  const addInput = () => {
-    const newCount = inputCount + 1;
-    setInputCount(newCount);
-    if (onNodeDataChange) {
-      onNodeDataChange(id, { inputCount: newCount });
-    }
-  };
-  
-  const removeInput = () => {
-    if (inputCount > 2) {
-      const newCount = inputCount - 1;
-      setInputCount(newCount);
-      if (onNodeDataChange) {
-        onNodeDataChange(id, { inputCount: newCount });
-      }
-    }
-  };
 
   return (
     <div className={`px-4 py-4 shadow-md rounded-md bg-white border-2 ${
@@ -77,25 +53,6 @@ const MultiplyNode = ({ data, selected, id, isConnectable, onNodeDataChange }: M
         <div className="text-3xl font-bold">×</div>
       </div>
       
-      {/* Add/remove input buttons */}
-      <div className="flex justify-center space-x-2 mt-2">
-        <button 
-          className="px-2 py-1 bg-gray-200 rounded text-xs nodrag"
-          onClick={addInput}
-          type="button"
-        >
-          + Input
-        </button>
-        {inputCount > 2 && (
-          <button 
-            className="px-2 py-1 bg-gray-200 rounded text-xs nodrag"
-            onClick={removeInput}
-            type="button"
-          >
-            - Input
-          </button>
-        )}
-      </div>
 
       {/* Output handle */}
       <Handle
@@ -109,4 +66,4 @@ const MultiplyNode = ({ data, selected, id, isConnectable, onNodeDataChange }: M
   );
 };
 
-export default withNodeDataHandling(MultiplyNode);
+export default memo(MultiplyNode);

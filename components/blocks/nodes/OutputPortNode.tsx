@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { useState, useEffect } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
 import { withNodeDataHandling } from '../withNodeDataHandling';
@@ -21,39 +22,9 @@ const OutputPortNode = ({
   data, 
   selected, 
   id, 
-  isConnectable, 
-  onNodeDataChange 
-}: OutputPortNodeProps) => {
-  const [name, setName] = useState(data.name || '');
-  const [unit, setUnit] = useState(data.unit || '');
+  isConnectable
+}: NodeProps<OutputPortNodeData>) => {
 
-  // Update state when props change
-  useEffect(() => {
-    setName(data.name || '');
-    setUnit(data.unit || '');
-  }, [data.name, data.unit]);
-
-  // Handle name change
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value;
-    setName(newName);
-    
-    // Update the model data
-    if (onNodeDataChange) {
-      onNodeDataChange(id, { name: newName });
-    }
-  };
-
-  // Handle unit change
-  const handleUnitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newUnit = e.target.value;
-    setUnit(newUnit);
-    
-    // Update the model data
-    if (onNodeDataChange) {
-      onNodeDataChange(id, { unit: newUnit });
-    }
-  };
 
   return (
     <div className={`px-4 py-4 shadow-md rounded-md bg-white border-2 ${
@@ -75,29 +46,6 @@ const OutputPortNode = ({
           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Output</span>
         </div>
         
-        {/* Signal name field */}
-        <div className="mb-2">
-          <label className="block text-xs text-gray-600 mb-1">Signal Name:</label>
-          <input
-            type="text"
-            value={name}
-            onChange={handleNameChange}
-            className="w-full p-1 text-sm border rounded nodrag"
-            placeholder="Enter signal name"
-          />
-        </div>
-
-        {/* Optional unit field */}
-        <div className="mb-2">
-          <label className="block text-xs text-gray-600 mb-1">Unit (optional):</label>
-          <input
-            type="text"
-            value={unit}
-            onChange={handleUnitChange}
-            className="w-full p-1 text-sm border rounded nodrag"
-            placeholder="e.g., m/s, kg, etc."
-          />
-        </div>
         
         {/* Display current value (if simulation is running) */}
         {data.value !== undefined && (
@@ -123,4 +71,4 @@ const OutputPortNode = ({
   );
 };
 
-export default withNodeDataHandling(OutputPortNode);
+export default memo(OutputPortNode);

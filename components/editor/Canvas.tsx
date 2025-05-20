@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -12,13 +12,21 @@ import ReactFlow, {
   Node,
   Edge,
   Connection,
+  NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { getNodeTypes } from '@/components/blocks/NodeTypes';
 import { useModelStore } from '@/lib/store/modelStore';
 import { toReactFlowNodes, toReactFlowEdges, fromReactFlowNodes, fromReactFlowEdges, createId } from '@/lib/models/modelSchema';
+import PropertiesPanel from '../editor/PropertiesPanel';
 
-export default function Canvas() {
+interface CanvasProps {
+  onNodeSelect: (nodeId: string | null) => void;
+  showProperties: boolean;
+  onCloseProperties: () => void;
+}
+
+export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps) {
   // Get the current sheet from our model store
   const { getCurrentSheet, addBlock, addConnection, removeBlock, removeConnection, updateBlock } = useModelStore();
   const currentSheet = getCurrentSheet();
@@ -26,6 +34,11 @@ export default function Canvas() {
   // Initialize React Flow state with data from our model
   const [nodes, setNodes, onNodesChange] = useNodesState(toReactFlowNodes(currentSheet));
   const [edges, setEdges, onEdgesChange] = useEdgesState(toReactFlowEdges(currentSheet));
+  
+  // State for selected node and properties panel
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  //
+  const [showProperties, setShowProperties] = useState(false);
   
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -215,7 +228,13 @@ export default function Canvas() {
     nodesToDelete.forEach(node => {
       removeBlock(node.id);
     });
-  }, [removeBlock]);
+    
+    // Clear selected node if it was deleted
+    if (selectedNode && nodesToDelete.some(node => node.id === selectedNode.id)) {
+      setSelectedNode(null);
+      setShowProperties(false);
+    }
+  }, [removeBlock, selectedNode]);
 
   // Handle edge deletion
   const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
@@ -238,6 +257,30 @@ export default function Canvas() {
     return () => clearTimeout(timeoutId);
   }, [nodes, updateBlock]);
 
+  // Handle node selection
+    const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
+    setSelectedNode(node);
+    onNodeSelect(node.id);
+  }, [onNodeSelect]);
+
+  // Handle canvas click (deselect)
+  const onPaneClick = useCallback(() => {
+    setSelectedNode(null);
+    onNodeSelect(null);
+  }, [onNodeSelect]);
+
+  // Toggle properties panel
+  const toggleProperties = useCallback(() => {
+    if (selectedNode) {
+      setShowProperties(!showProperties);
+    }
+  }, [selectedNode, showProperties]);
+
+  // Close properties panel
+  const closeProperties = useCallback(() => {
+    setShowProperties(false);
+  }, []);
+
   // Allow dropping on the canvas
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -245,33 +288,25 @@ export default function Canvas() {
   }, []);
 
   return (
-    <div ref={reactFlowWrapper} className="flex-grow bg-white relative">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onInit={onInit}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onNodesDelete={onNodesDelete}
-        onEdgesDelete={onEdgesDelete}
-        nodeTypes={nodeTypes}
-        connectionLineType={ConnectionLineType.SmoothStep}
-        snapToGrid={true}
-        fitView
-        // Add this line to prevent dragging when clicking on form elements
-        nodesDraggable={true}
-        nodesConnectable={true}
-        elementsSelectable={true}
-        // Add a custom stylesheet to help with interactivity
-        className="custom-reactflow-canvas"
-      >
-        <Controls />
-        <MiniMap />
-        <Background color="#aaa" gap={16} />
-      </ReactFlow>
+    <div className="flex flex-grow relative">
+      <div ref={reactFlowWrapper} className="flex-grow bg-white relative">
+        <ReactFlow
+          // ... existing props ...
+        >
+          <Controls />
+          <MiniMap />
+          <Background color="#aaa" gap={16} />
+        </ReactFlow>
+      </div>
+      
+      {/* Show properties panel when a node is selected and properties panel is toggled */}
+      {showProperties && selectedNode && (
+        <PropertiesPanel
+          selectedNode={selectedNode}
+          onNodeDataChange={onNodeDataChange}
+          onClose={onCloseProperties}
+        />
+      )}
     </div>
   );
 }
