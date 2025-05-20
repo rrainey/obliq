@@ -117,25 +117,35 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
   // Store the React Flow instance
   const onInit = useCallback((instance: ReactFlowInstance) => {
     reactFlowInstance.current = instance;
+    console.log('ReactFlow instance initialized in Canvas');
   }, []);
 
   // Handle dropping a block from the sidebar onto the canvas
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
+      console.log('Drop event triggered');  // Add logging
 
       if (!reactFlowWrapper.current || !reactFlowInstance.current) {
+        console.error('ReactFlow wrapper or instance not available');
         return;
       }
 
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const blockType = event.dataTransfer.getData('application/reactflow');
+      console.log(`Block type from drag data: ${blockType}`);  // Add logging
+      
+      if (!blockType) {
+        console.error('No block type found in drag data');
+        return;
+      }
       
       // Get block position relative to the canvas
       const position = reactFlowInstance.current.project({
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
       });
+      console.log(`Drop position: ${position.x}, ${position.y}`);  // Add logging
 
       // Generate labels for each block type
       const getBlockLabel = (type: string): string => {
@@ -216,6 +226,7 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
         position,
         data: getBlockData(blockType),
       };
+      console.log('Creating new block:', newBlock);  // Add logging
 
       // Add the block to our model
       addBlock(newBlock);
@@ -223,18 +234,18 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
     [addBlock]
   );
 
+  // Allow dropping on the canvas
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
   // Handle node deletion
   const onNodesDelete = useCallback((nodesToDelete: Node[]) => {
     nodesToDelete.forEach(node => {
       removeBlock(node.id);
     });
-    
-    // Clear selected node if it was deleted
-    if (selectedNode && nodesToDelete.some(node => node.id === selectedNode.id)) {
-      setSelectedNode(null);
-      setShowProperties(false);
-    }
-  }, [removeBlock, selectedNode]);
+  }, [removeBlock]);
 
   // Handle edge deletion
   const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
@@ -258,16 +269,14 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
   }, [nodes, updateBlock]);
 
   // Handle node selection
-    const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
+  const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
     setSelectedNode(node);
-    onNodeSelect(node.id);
-  }, [onNodeSelect]);
+  }, []);
 
   // Handle canvas click (deselect)
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
-    onNodeSelect(null);
-  }, [onNodeSelect]);
+  }, []);
 
   // Toggle properties panel
   const toggleProperties = useCallback(() => {
@@ -281,17 +290,30 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
     setShowProperties(false);
   }, []);
 
-  // Allow dropping on the canvas
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
-
   return (
     <div className="flex flex-grow relative">
       <div ref={reactFlowWrapper} className="flex-grow bg-white relative">
         <ReactFlow
-          // ... existing props ...
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onInit={onInit}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onNodesDelete={onNodesDelete}
+          onEdgesDelete={onEdgesDelete}
+          onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
+          nodeTypes={nodeTypes}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          snapToGrid={true}
+          fitView
+          deleteKeyCode={['Backspace', 'Delete']}
+          multiSelectionKeyCode={['Meta', 'Shift']}
+          nodesDraggable={true}
+          elementsSelectable={true}
         >
           <Controls />
           <MiniMap />

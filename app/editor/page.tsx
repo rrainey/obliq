@@ -70,20 +70,20 @@ function EditorContent() {
         onShowProperties={handleShowProperties} 
       />
 
-      {/* Main content */}
-      <main className="flex-grow flex">
-        {/* Sidebar */}
-        <Sidebar />
+      {/* Main content - wrap everything in ReactFlowProvider */}
+      <ReactFlowProvider>
+        <main className="flex-grow flex">
+          {/* Sidebar */}
+          <Sidebar />
 
-        {/* Canvas */}
-        <ReactFlowProvider>
+          {/* Canvas */}
           <Canvas 
             onNodeSelect={handleNodeSelect}
             showProperties={showProperties}
             onCloseProperties={handleCloseProperties}
           />
-        </ReactFlowProvider>
-      </main>
+        </main>
+      </ReactFlowProvider>
 
       {/* Status bar */}
       <footer className="bg-gray-100 border-t border-gray-300 p-2 text-sm text-gray-600">
