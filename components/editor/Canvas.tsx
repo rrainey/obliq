@@ -19,6 +19,7 @@ import { getNodeTypes } from '@/components/blocks/NodeTypes';
 import { useModelStore } from '@/lib/store/modelStore';
 import { toReactFlowNodes, toReactFlowEdges, fromReactFlowNodes, fromReactFlowEdges, createId } from '@/lib/models/modelSchema';
 import PropertiesPanel from '../editor/PropertiesPanel';
+import { useSimulation } from '@/lib/hooks/useSimulation';
 import { Block, 
          BlockData, 
          InputPortBlockData, 
@@ -34,9 +35,27 @@ interface CanvasProps {
   onNodeSelect: (nodeId: string | null) => void;
   showProperties: boolean;
   onCloseProperties: () => void;
+  // New simulation-related props to match page.tsx
+  isSimulationRunning?: boolean;
+  simulationTime?: number;
+  onSimulationStart?: () => void;
+  onSimulationStop?: () => void;
+  onSimulationReset?: () => void;
+  onUpdateSimulationTime?: (time: number) => void;
 }
 
-export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps) {
+export default function Canvas({ 
+  onNodeSelect, 
+  onCloseProperties, 
+  showProperties,
+  // Provide defaults for new props
+  isSimulationRunning = false,
+  simulationTime = 0,
+  onSimulationStart = () => {},
+  onSimulationStop = () => {},
+  onSimulationReset = () => {},
+  onUpdateSimulationTime = () => {}
+}: CanvasProps) {
   // Get the current sheet from our model store
   const { getCurrentSheet, addBlock, addConnection, removeBlock, removeConnection, updateBlock } = useModelStore();
   const currentSheet = getCurrentSheet();
@@ -45,10 +64,8 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
   const [nodes, setNodes, onNodesChange] = useNodesState(toReactFlowNodes(currentSheet));
   const [edges, setEdges, onEdgesChange] = useEdgesState(toReactFlowEdges(currentSheet));
   
-  // State for selected node and properties panel
+  // State for selected node
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  //
-  const [showProperties, setShowProperties] = useState(false);
   
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
@@ -72,11 +89,69 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
   // Create node types with the onNodeDataChange function
   const nodeTypes = getNodeTypes(onNodeDataChange);
 
+  // Set up simulation hook with our blocks and connections
+  const {
+    isRunning,
+    currentTime,
+    startSimulation,
+    stopSimulation,
+    resetSimulation,
+    stepSimulation,
+    setTimeStep
+  } = useSimulation(currentSheet.blocks, currentSheet.connections, onNodeDataChange);
+
+  // Use external simulation running state if provided
+  useEffect(() => {
+    if (isSimulationRunning && !isRunning) {
+      startSimulation();
+    } else if (!isSimulationRunning && isRunning) {
+      stopSimulation();
+    }
+  }, [isSimulationRunning, isRunning, startSimulation, stopSimulation]);
+
+  // Update external time as simulation progresses
+  useEffect(() => {
+    if (isRunning) {
+      onUpdateSimulationTime(currentTime);
+    }
+  }, [currentTime, isRunning, onUpdateSimulationTime]);
+
+  // Connect simulation controls from parent to local simulation engine
+  const handleStartSimulation = useCallback(() => {
+    startSimulation();
+    onSimulationStart();
+  }, [startSimulation, onSimulationStart]);
+
+  const handleStopSimulation = useCallback(() => {
+    stopSimulation();
+    onSimulationStop();
+  }, [stopSimulation, onSimulationStop]);
+
+  const handleResetSimulation = useCallback(() => {
+    resetSimulation();
+    onSimulationReset();
+    onUpdateSimulationTime(0); // Reset external time as well
+  }, [resetSimulation, onSimulationReset, onUpdateSimulationTime]);
+
+  // Expose stepSimulation and setTimeStep to be called from the parent component
+  // via refs or other mechanisms if needed
+
   // Sync ReactFlow state with our model store
   useEffect(() => {
     setNodes(toReactFlowNodes(currentSheet));
     setEdges(toReactFlowEdges(currentSheet));
   }, [currentSheet, setNodes, setEdges]);
+
+  // Track if we need to stop simulation when switching sheets
+  useEffect(() => {
+    // Stop simulation when unmounting
+    return () => {
+      if (isRunning) {
+        stopSimulation();
+        onSimulationStop(); // Notify parent
+      }
+    };
+  }, [isRunning, stopSimulation, onSimulationStop]);
 
   // Update node connections status
   const updateNodeConnections = useCallback(() => {
@@ -297,9 +372,9 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
     // Clear selected node if it was deleted
     if (selectedNode && nodesToDelete.some(node => node.id === selectedNode.id)) {
       setSelectedNode(null);
-      setShowProperties(false);
+      onNodeSelect(null);
     }
-  }, [removeBlock, selectedNode]);
+  }, [removeBlock, selectedNode, onNodeSelect]);
 
   // Handle edge deletion
   const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
@@ -334,57 +409,84 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
     onNodeSelect(null);
   }, [onNodeSelect]);
 
-  // Toggle properties panel
-  const toggleProperties = useCallback(() => {
-    if (selectedNode) {
-      setShowProperties(!showProperties);
-    }
-  }, [selectedNode, showProperties]);
-
-  // Close properties panel
-  const closeProperties = useCallback(() => {
-    setShowProperties(false);
-  }, []);
+  // Add keyboard shortcut handler for simulation control
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle shortcuts when not editing text
+      if (event.target instanceof HTMLInputElement || 
+          event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      switch(event.key) {
+        case ' ': // Space bar to toggle simulation
+          if (isRunning) {
+            handleStopSimulation();
+          } else {
+            handleStartSimulation();
+          }
+          event.preventDefault();
+          break;
+        case 'r': // R to reset simulation
+          handleResetSimulation();
+          event.preventDefault();
+          break;
+        case 's': // S to step simulation
+          if (!isRunning) {
+            stepSimulation();
+          }
+          event.preventDefault();
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isRunning, handleStartSimulation, handleStopSimulation, handleResetSimulation, stepSimulation]);
 
   return (
-    <div className="flex flex-grow relative">
-      <div ref={reactFlowWrapper} className="flex-grow bg-white relative">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onInit={onInit}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onNodesDelete={onNodesDelete}
-          onEdgesDelete={onEdgesDelete}
-          onNodeClick={onNodeClick}
-          onPaneClick={onPaneClick}
-          nodeTypes={nodeTypes}
-          connectionLineType={ConnectionLineType.SmoothStep}
-          snapToGrid={true}
-          fitView
-          deleteKeyCode={['Backspace', 'Delete']}
-          multiSelectionKeyCode={['Meta', 'Shift']}
-          nodesDraggable={true}
-          elementsSelectable={true}
-        >
-          <Controls />
-          <MiniMap />
-          <Background color="#aaa" gap={16} />
-        </ReactFlow>
+    <div className="flex flex-col h-full">
+      <div className="flex flex-grow relative">
+        <div ref={reactFlowWrapper} className="flex-grow bg-white relative">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={onInit}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onNodesDelete={onNodesDelete}
+            onEdgesDelete={onEdgesDelete}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+            nodeTypes={nodeTypes}
+            connectionLineType={ConnectionLineType.SmoothStep}
+            snapToGrid={true}
+            fitView
+            deleteKeyCode={['Backspace', 'Delete']}
+            multiSelectionKeyCode={['Meta', 'Shift']}
+            nodesDraggable={true}
+            elementsSelectable={true}
+          >
+            <Controls />
+            <MiniMap />
+            <Background color="#aaa" gap={16} />
+          </ReactFlow>
+        </div>
+        
+        {/* Show properties panel when a node is selected and properties panel is toggled */}
+        {showProperties && selectedNode && (
+          <PropertiesPanel
+            selectedNode={selectedNode}
+            onNodeDataChange={onNodeDataChange}
+            onClose={onCloseProperties}
+          />
+        )}
       </div>
-      
-      {/* Show properties panel when a node is selected and properties panel is toggled */}
-      {showProperties && selectedNode && (
-        <PropertiesPanel
-          selectedNode={selectedNode}
-          onNodeDataChange={onNodeDataChange}
-          onClose={onCloseProperties}
-        />
-      )}
     </div>
   );
 }

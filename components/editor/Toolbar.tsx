@@ -7,9 +7,26 @@ import { useModelStore } from '@/lib/store/modelStore';
 interface ToolbarProps {
   selectedNodeId: string | null;
   onShowProperties: () => void;
+  isSimulationRunning: boolean;
+  simulationTime: number;
+  onStartSimulation: () => void;
+  onStopSimulation: () => void;
+  onResetSimulation: () => void;
+  onStepSimulation: () => void;
+  onSetTimeStep: (step: number) => void;
 }
 
-export default function Toolbar({ selectedNodeId, onShowProperties }: ToolbarProps) {
+export default function Toolbar({
+  selectedNodeId,
+  onShowProperties,
+  isSimulationRunning,
+  simulationTime,
+  onStartSimulation,
+  onStopSimulation,
+  onResetSimulation,
+  onStepSimulation,
+  onSetTimeStep
+}: ToolbarProps) {
   const [showJson, setShowJson] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const { model, validateCurrentModel } = useModelStore();
@@ -28,18 +45,52 @@ export default function Toolbar({ selectedNodeId, onShowProperties }: ToolbarPro
     }, 3000);
   };
 
+  // Format simulation time to show 2 decimal places
+  const formattedTime = simulationTime.toFixed(2);
+
   return (
     <div className="bg-gray-100 border-b border-gray-300 p-2">
       <div className="flex items-center space-x-2">
         <button className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
           Save
         </button>
-        <button className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
-          Run
+
+        {/* Simulation controls */}
+        <div className="border-l border-gray-300 h-6 mx-2"></div>
+        {isSimulationRunning ? (
+          <button
+            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+            onClick={onStopSimulation}
+          >
+            Stop
+          </button>
+        ) : (
+          <button
+            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
+            onClick={onStartSimulation}
+          >
+            Run
+          </button>
+        )}
+        <button
+          className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded text-sm"
+          onClick={onStepSimulation}
+        >
+          Step
         </button>
-        <button className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm">
-          Stop
+        <button
+          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
+          onClick={onResetSimulation}
+        >
+          Reset
         </button>
+        
+        {/* Simulation time display */}
+        <div className="bg-gray-200 px-3 py-1 rounded text-sm flex items-center">
+          <span className="text-gray-600 mr-2">Time:</span>
+          <span className="font-mono">{formattedTime}s</span>
+        </div>
+
         <div className="border-l border-gray-300 h-6 mx-2"></div>
         <button className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded text-sm">
           Generate C Code

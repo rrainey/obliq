@@ -23,6 +23,10 @@ function EditorContent() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showProperties, setShowProperties] = useState(false);
   
+  // Simulation state
+  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
+  const [simulationTime, setSimulationTime] = useState(0);
+  
   // Handle properties button click
   const handleShowProperties = useCallback(() => {
     if (selectedNodeId) {
@@ -43,6 +47,35 @@ function EditorContent() {
   // Close properties panel
   const handleCloseProperties = useCallback(() => {
     setShowProperties(false);
+  }, []);
+  
+  // Simulation handlers - these will be connected to Canvas later
+  const handleStartSimulation = useCallback(() => {
+    setIsSimulationRunning(true);
+    // Actual simulation start will be handled by Canvas
+  }, []);
+  
+  const handleStopSimulation = useCallback(() => {
+    setIsSimulationRunning(false);
+    // Actual simulation stop will be handled by Canvas
+  }, []);
+  
+  const handleResetSimulation = useCallback(() => {
+    setSimulationTime(0);
+    // Actual simulation reset will be handled by Canvas
+  }, []);
+  
+  const handleStepSimulation = useCallback(() => {
+    // Step simulation will be handled by Canvas
+  }, []);
+  
+  const handleSetTimeStep = useCallback((step: number) => {
+    // Set time step will be handled by Canvas
+  }, []);
+  
+  // Update simulation time - this will be called from Canvas
+  const handleUpdateSimulationTime = useCallback((time: number) => {
+    setSimulationTime(time);
   }, []);
 
   return (
@@ -67,7 +100,14 @@ function EditorContent() {
       {/* Toolbar */}
       <Toolbar 
         selectedNodeId={selectedNodeId} 
-        onShowProperties={handleShowProperties} 
+        onShowProperties={handleShowProperties}
+        isSimulationRunning={isSimulationRunning}
+        simulationTime={simulationTime}
+        onStartSimulation={handleStartSimulation}
+        onStopSimulation={handleStopSimulation}
+        onResetSimulation={handleResetSimulation}
+        onStepSimulation={handleStepSimulation}
+        onSetTimeStep={handleSetTimeStep}
       />
 
       {/* Main content */}
@@ -81,6 +121,12 @@ function EditorContent() {
             onNodeSelect={handleNodeSelect}
             showProperties={showProperties}
             onCloseProperties={handleCloseProperties}
+            isSimulationRunning={isSimulationRunning}
+            simulationTime={simulationTime}
+            onSimulationStart={handleStartSimulation}
+            onSimulationStop={handleStopSimulation}
+            onSimulationReset={handleResetSimulation}
+            onUpdateSimulationTime={handleUpdateSimulationTime}
           />
         </ReactFlowProvider>
       </main>
@@ -89,7 +135,7 @@ function EditorContent() {
       <footer className="bg-gray-100 border-t border-gray-300 p-2 text-sm text-gray-600">
         <div className="flex justify-between">
           <div>Status: Ready</div>
-          <div>Simulation: Idle</div>
+          <div>Simulation: {isSimulationRunning ? 'Running' : 'Idle'}</div>
         </div>
       </footer>
     </div>

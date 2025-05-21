@@ -1,9 +1,7 @@
 'use client';
 
-import { memo } from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
-import { withNodeDataHandling } from '../withNodeDataHandling';
 
 export interface LogEntry {
   time: number;
@@ -35,6 +33,21 @@ const LoggerNode = ({
   const recording = data.recording !== false;
   const showSettings = data.showSettings ?? false;
 
+  // Animation state for new log entries
+  const [newEntryAnimation, setNewEntryAnimation] = useState(false);
+  const logLength = useRef(logs.length);
+  
+  // Animate when new log entry arrives
+  useEffect(() => {
+    if (logs.length > logLength.current) {
+      setNewEntryAnimation(true);
+      const timeout = setTimeout(() => {
+        setNewEntryAnimation(false);
+      }, 300);
+      logLength.current = logs.length;
+      return () => clearTimeout(timeout);
+    }
+  }, [logs.length]);
   
   return (
     <div 
@@ -51,12 +64,23 @@ const LoggerNode = ({
         isConnectable={isConnectable}
       />
 
+      {/* Block header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-medium">{data.label}</div>
+        <div className={`text-xs px-2 py-1 rounded ${
+          recording ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+        }`}>
+          {recording ? 'Recording' : 'Paused'}
+        </div>
+      </div>
+
       {/* Block content */}
       <div className="flex flex-col">
         
-        
         {/* Log display */}
-        <div className="p-2 bg-gray-100 rounded h-32 overflow-y-auto text-xs">
+        <div className={`p-2 bg-gray-100 rounded h-32 overflow-y-auto text-xs transition-colors duration-300 ${
+          newEntryAnimation ? 'bg-yellow-50' : 'bg-gray-100'
+        }`}>
           {logs.length > 0 ? (
             <table className="w-full text-left">
               <thead>
@@ -67,7 +91,9 @@ const LoggerNode = ({
               </thead>
               <tbody>
                 {logs.slice().reverse().map((entry, index) => (
-                  <tr key={index} className="border-b border-gray-200">
+                  <tr key={index} className={`border-b border-gray-200 ${
+                    index === 0 && newEntryAnimation ? 'bg-yellow-100' : ''
+                  }`}>
                     <td className="py-1 px-2">{entry.time.toFixed(2)}s</td>
                     <td className="py-1 px-2 font-mono">
                       {typeof entry.value === 'number' 
@@ -94,6 +120,11 @@ const LoggerNode = ({
           <span className={data.connected ? 'text-green-600' : 'text-gray-500'}>
             {data.connected ? '● Connected' : '○ Not connected'}
           </span>
+        </div>
+        
+        {/* Entry count */}
+        <div className="mt-1 text-xs text-gray-500 text-right">
+          {logs.length} entries
         </div>
       </div>
     </div>
