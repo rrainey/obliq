@@ -1,14 +1,22 @@
-// lib/store/modelStore.ts - SIMPLIFIED VERSION
+// lib/store/modelStore.ts - LLM-generated code
 'use client';
 
 import { create } from 'zustand';
 import { createContext, useContext, ReactNode } from 'react';
 import { Block, Connection, Sheet, Model } from '@/lib/models/modelSchema';
+import { saveModelToSupabase, SaveModelResult, loadUserModels, loadModelById, deleteModelById } from '@/lib/services/modelService';
+import { ModelData } from '@/lib/supabase/supabaseClient';
+import { fixModelIntegrity, normalizeModel, validateModel } from '@/lib/services/modelValidationService';
 
 // Define model store state
 interface ModelState {
   model: Model;
   currentSheetId: string;
+  
+  // Save state
+  isSaving: boolean;
+  lastSaveTime: string | null;
+  hasUnsavedChanges: boolean;
   
   // Sheet operations
   addSheet: (sheet: Sheet) => void;
@@ -32,8 +40,14 @@ interface ModelState {
   
   // Model operations
   setModel: (model: Model) => void;
-  saveModel: () => Promise<boolean>;
-  loadModel: (modelId: string) => Promise<boolean>;
+  saveModel: (name: string, description: string) => Promise<SaveModelResult>;
+  loadModel: (modelData: ModelData) => Promise<boolean>;
+  loadUserModels: () => Promise<ModelData[]>;
+  deleteModel: (modelId: string) => Promise<boolean>;
+  
+  // Save state management
+  markUnsavedChanges: () => void;
+  clearUnsavedChanges: () => void;
 }
 
 // Create the Zustand store
@@ -58,15 +72,22 @@ export const useModelStore = create<ModelState>((set, get) => {
   return {
     model: defaultModel,
     currentSheetId: 'main-sheet',
+    isSaving: false,
+    lastSaveTime: null,
+    hasUnsavedChanges: false,
 
     // Sheet operations
-    addSheet: (sheet) => set((state) => ({
-      model: {
-        ...state.model,
-        sheets: [...state.model.sheets, sheet],
-        updatedAt: new Date().toISOString(),
-      },
-    })),
+    addSheet: (sheet) => set((state) => {
+      const newState = {
+        model: {
+          ...state.model,
+          sheets: [...state.model.sheets, sheet],
+          updatedAt: new Date().toISOString(),
+        },
+        hasUnsavedChanges: true,
+      };
+      return newState;
+    }),
 
     updateSheet: (sheetId, updates) => set((state) => ({
       model: {
@@ -76,6 +97,7 @@ export const useModelStore = create<ModelState>((set, get) => {
         ),
         updatedAt: new Date().toISOString(),
       },
+      hasUnsavedChanges: true,
     })),
 
     removeSheet: (sheetId) => set((state) => ({
@@ -89,6 +111,7 @@ export const useModelStore = create<ModelState>((set, get) => {
         state.currentSheetId === sheetId
           ? state.model.sheets[0]?.id || 'main-sheet'
           : state.currentSheetId,
+      hasUnsavedChanges: true,
     })),
 
     setCurrentSheet: (sheetId) => set({ currentSheetId: sheetId }),
@@ -114,6 +137,7 @@ export const useModelStore = create<ModelState>((set, get) => {
           ),
           updatedAt: new Date().toISOString(),
         },
+        hasUnsavedChanges: true,
       };
     }),
 
@@ -141,6 +165,7 @@ export const useModelStore = create<ModelState>((set, get) => {
           ),
           updatedAt: new Date().toISOString(),
         },
+        hasUnsavedChanges: true,
       };
     }),
 
@@ -173,6 +198,7 @@ export const useModelStore = create<ModelState>((set, get) => {
           ),
           updatedAt: new Date().toISOString(),
         },
+        hasUnsavedChanges: true,
       };
     }),
 
@@ -197,6 +223,7 @@ export const useModelStore = create<ModelState>((set, get) => {
           ),
           updatedAt: new Date().toISOString(),
         },
+        hasUnsavedChanges: true,
       };
     }),
 
@@ -224,6 +251,7 @@ export const useModelStore = create<ModelState>((set, get) => {
           ),
           updatedAt: new Date().toISOString(),
         },
+        hasUnsavedChanges: true,
       };
     }),
 
@@ -249,6 +277,7 @@ export const useModelStore = create<ModelState>((set, get) => {
           ),
           updatedAt: new Date().toISOString(),
         },
+        hasUnsavedChanges: true,
       };
     }),
 
@@ -272,39 +301,137 @@ export const useModelStore = create<ModelState>((set, get) => {
 
     validateCurrentModel: () => {
       const state = get();
-      const currentSheet = state.getCurrentSheet();
+      const validation = validateModel(state.model);
       
-      // Basic validation - check if all connections reference valid blocks
-      const blockIds = new Set(currentSheet.blocks.map((block) => block.id));
+      if (validation.warnings.length > 0) {
+        console.warn('Model validation warnings:', validation.warnings);
+      }
       
-      const validConnections = currentSheet.connections.every(
-        (conn) =>
-          blockIds.has(conn.sourceNodeId) && blockIds.has(conn.targetNodeId)
-      );
+      if (!validation.isValid) {
+        console.error('Model validation errors:', validation.errors);
+      }
       
-      // For this implementation, we'll just check connection validity
-      return validConnections;
+      return validation.isValid;
     },
 
     // Model operations
-    setModel: (model) => set({ model }),
+    setModel: (model) => set({ 
+      model,
+      hasUnsavedChanges: false,
+    }),
 
-    saveModel: async () => {
-      console.log('Saving model...');
-      // In a real implementation, this would save to Supabase
-      // Currently just logs to console and returns success
-      console.log('Model data:', get().model);
+    saveModel: async (name: string, description: string) => {
+      const state = get();
       
-      return true;
+      // Set saving state
+      set({ isSaving: true });
+      
+      try {
+        const result = await saveModelToSupabase(state.model, name, description);
+        
+        if (result.success) {
+          // Update model name and description if save was successful
+          set((state) => ({
+            model: {
+              ...state.model,
+              name,
+              description,
+            },
+            isSaving: false,
+            lastSaveTime: new Date().toISOString(),
+            hasUnsavedChanges: false,
+          }));
+        } else {
+          set({ isSaving: false });
+        }
+        
+        return result;
+      } catch (error) {
+        set({ isSaving: false });
+        return {
+          success: false,
+          error: 'Failed to save model'
+        };
+      }
     },
 
-    loadModel: async (modelId) => {
-      console.log(`Loading model ${modelId}...`);
-      // In a real implementation, this would load from Supabase
-      // For now, we just return true to indicate success
-      
-      return true;
+    loadModel: async (modelData: ModelData) => {
+      try {
+        // Convert the Supabase model data back to our internal Model format
+        const loadedModel: Model = {
+          id: modelData.data.id || modelData.id,
+          name: modelData.name,
+          description: modelData.description || '',
+          createdAt: modelData.data.createdAt || modelData.created_at,
+          updatedAt: modelData.data.updatedAt || modelData.updated_at,
+          sheets: modelData.data.sheets || []
+        };
+
+        // Validate and fix the loaded model
+        const { model: fixedModel, fixedIssues } = fixModelIntegrity(loadedModel);
+        
+        if (fixedIssues.length > 0) {
+          console.warn('Fixed model integrity issues:', fixedIssues);
+        }
+
+        // Normalize the model for consistent state
+        const normalizedModel = normalizeModel(fixedModel);
+
+        // Validate the final model
+        const validation = validateModel(normalizedModel);
+        
+        if (!validation.isValid) {
+          console.error('Model validation failed:', validation.errors);
+          // Still load the model but warn the user
+        }
+
+        if (validation.warnings.length > 0) {
+          console.warn('Model validation warnings:', validation.warnings);
+        }
+
+        // Set the loaded model
+        set({
+          model: normalizedModel,
+          hasUnsavedChanges: fixedIssues.length > 0, // Mark as changed if we fixed issues
+          currentSheetId: normalizedModel.sheets[0]?.id || 'main-sheet'
+        });
+
+        return true;
+      } catch (error) {
+        console.error('Error loading model:', error);
+        return false;
+      }
     },
+
+    loadUserModels: async () => {
+      try {
+        const result = await loadUserModels();
+        
+        if (result.success) {
+          return result.models || [];
+        } else {
+          console.error('Failed to load user models:', result.error);
+          return [];
+        }
+      } catch (error) {
+        console.error('Error loading user models:', error);
+        return [];
+      }
+    },
+
+    deleteModel: async (modelId: string) => {
+      try {
+        const result = await deleteModelById(modelId);
+        return result.success;
+      } catch (error) {
+        console.error('Error deleting model:', error);
+        return false;
+      }
+    },
+
+    // Save state management
+    markUnsavedChanges: () => set({ hasUnsavedChanges: true }),
+    clearUnsavedChanges: () => set({ hasUnsavedChanges: false }),
   };
 });
 

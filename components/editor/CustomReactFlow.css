@@ -17,3 +17,8 @@
 .custom-reactflow-canvas button {
   pointer-events: all !important;
 }
+
+.reactflow-wrapper {
+  height: 100%;
+  min-height: 500px;
+}

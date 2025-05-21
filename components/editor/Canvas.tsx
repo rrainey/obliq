@@ -15,6 +15,7 @@ import ReactFlow, {
   NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import './CustomReactFlow.css';
 import { getNodeTypes } from '@/components/blocks/NodeTypes';
 import { useModelStore } from '@/lib/store/modelStore';
 import { toReactFlowNodes, toReactFlowEdges, fromReactFlowNodes, fromReactFlowEdges, createId } from '@/lib/models/modelSchema';
@@ -447,7 +448,6 @@ export default function Canvas({
   }, [isRunning, handleStartSimulation, handleStopSimulation, handleResetSimulation, stepSimulation]);
 
   return (
-    <div className="flex flex-col h-full">
       <div className="flex flex-grow relative">
         <div ref={reactFlowWrapper} className="flex-grow bg-white relative">
           <ReactFlow
@@ -487,6 +487,5 @@ export default function Canvas({
           />
         )}
       </div>
-    </div>
   );
 }
