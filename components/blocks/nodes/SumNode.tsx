@@ -1,22 +1,20 @@
+// components/blocks/nodes/SumNode.tsx (update)
 'use client';
 
 import { memo } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
-
-export interface SumNodeData {
-  label: string;
-  description?: string;
-  inputCount: number;
-}
+import { SumBlockData } from '@/lib/models/modelSchema';
 
 const SumNode = ({ 
   data, 
   selected, 
   id, 
   isConnectable 
-}: NodeProps<SumNodeData>) => {
-  // Default to 2 inputs if not specified
+}: NodeProps<SumBlockData>) => {
+  // Default values
   const inputCount = data.inputCount || 2;
+  const operationType = data.operationType || 'sum';
+  const showInputLabels = data.showInputLabels ?? true;
 
   // Generate input handles based on count
   const renderInputHandles = () => {
@@ -26,15 +24,20 @@ const SumNode = ({
     for (let i = 0; i < totalInputs; i++) {
       const yPosition = 20 + (i * (60 / totalInputs));
       handles.push(
-        <Handle
-          key={`in${i+1}`}
-          type="target"
-          position={Position.Left}
-          id={`in${i+1}`}
-          className="w-3 h-3 bg-green-500"
-          style={{ top: `${yPosition}%` }}
-          isConnectable={isConnectable}
-        />
+        <div key={`input-${i+1}`} className="absolute left-0" style={{ top: `${yPosition}%` }}>
+          <Handle
+            type="target"
+            position={Position.Left}
+            id={`in${i+1}`}
+            className="w-3 h-3 bg-green-500"
+            isConnectable={isConnectable}
+          />
+          {showInputLabels && (
+            <span className="text-xs text-gray-500 ml-1 absolute left-3" style={{ transform: 'translateY(-50%)' }}>
+              {i === 0 && operationType === 'difference' ? 'minuend' : `in ${i+1}`}
+            </span>
+          )}
+        </div>
       );
     }
     
@@ -42,26 +45,33 @@ const SumNode = ({
   };
 
   return (
-    <div className={`px-4 py-4 shadow-md rounded-md bg-white border-2 ${
+    <div className={`relative px-6 py-4 shadow-md rounded-md bg-white border-2 ${
       selected ? 'border-blue-500' : 'border-gray-300'
-    } min-w-[100px] min-h-[100px] flex flex-col items-center justify-center`}>
+    } min-w-[120px] min-h-[100px] flex flex-col items-center justify-center`}>
       {/* Input handles */}
       {renderInputHandles()}
 
       {/* Block content */}
-      <div className="flex flex-col items-center">
-        <div className="text-xs text-gray-500 mb-1">{data.label}</div>
-        <div className="text-3xl font-bold">+</div>
+      <div className="flex flex-col items-center mt-2">
+        <div className="text-xs text-gray-500 mb-2">{data.label}</div>
+        <div className="text-3xl font-bold">{operationType === 'sum' ? '+' : '−'}</div>
       </div>
 
       {/* Output handle */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="out"
-        className="w-3 h-3 bg-blue-500"
-        isConnectable={isConnectable}
-      />
+      <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="out"
+          className="w-3 h-3 bg-blue-500"
+          isConnectable={isConnectable}
+        />
+        {showInputLabels && (
+          <span className="text-xs text-gray-500 mr-5 absolute right-0" style={{ transform: 'translateY(-50%)' }}>
+            out
+          </span>
+        )}
+      </div>
     </div>
   );
 };

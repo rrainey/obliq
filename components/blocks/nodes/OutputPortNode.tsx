@@ -1,35 +1,25 @@
 'use client';
 
 import { memo } from 'react';
-import { useState, useEffect } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
-import { withNodeDataHandling } from '../withNodeDataHandling';
-
-export interface OutputPortNodeData {
-  label: string;
-  description?: string;
-  name?: string; // Signal name for code generation
-  value?: number | null; // Current value (set during simulation)
-  connected?: boolean; // Whether this port is connected to a source
-  unit?: string; // Optional unit for the value (e.g., "m/s", "kg", etc.)
-}
-
-interface OutputPortNodeProps extends NodeProps<OutputPortNodeData> {
-  onNodeDataChange?: (nodeId: string, data: Partial<OutputPortNodeData>) => void;
-}
+import { OutputPortBlockData } from '@/lib/models/modelSchema';
 
 const OutputPortNode = ({ 
   data, 
   selected, 
   id, 
-  isConnectable
-}: NodeProps<OutputPortNodeData>) => {
-
+  isConnectable 
+}: NodeProps<OutputPortBlockData>) => {
+  // Get the output value to display
+  const value = data.value !== undefined && data.value !== null ? data.value : '---';
+  const unit = data.unit || '';
+  const signalName = data.name || 'output';
+  const exportEnabled = data.exportEnabled || false;
 
   return (
-    <div className={`px-4 py-4 shadow-md rounded-md bg-white border-2 ${
+    <div className={`relative px-4 py-3 shadow-md rounded-md bg-white border-2 ${
       selected ? 'border-blue-500' : data.connected ? 'border-green-400' : 'border-gray-300'
-    } min-w-[150px]`}>
+    } min-w-[140px]`}>
       {/* Input handle */}
       <Handle
         type="target"
@@ -39,33 +29,30 @@ const OutputPortNode = ({
         isConnectable={isConnectable}
       />
 
-      {/* Block content */}
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium">{data.label}</span>
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Output</span>
+      {/* Block header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-medium">{data.label}</div>
+        <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Output</div>
+      </div>
+      
+      {/* Value display */}
+      <div className="mb-2">
+        <div className="p-1 bg-gray-100 rounded font-mono flex justify-between">
+          <span>{value}</span>
+          {unit && <span className="text-xs text-gray-500">{unit}</span>}
         </div>
-        
-        
-        {/* Display current value (if simulation is running) */}
-        {data.value !== undefined && (
-          <div className="mt-2 p-2 bg-gray-100 rounded text-center">
-            <div className="font-mono">
-              {data.value !== null ? data.value : '---'}
-              {data.unit && <span className="text-xs ml-1 text-gray-500">{data.unit}</span>}
-            </div>
-            <div className="text-xs text-gray-500 mt-1">Current Value</div>
-          </div>
+      </div>
+      
+      {/* Signal name and export status */}
+      <div className="text-xs flex justify-between">
+        <span className="text-gray-500 truncate">
+          Signal: {signalName}
+        </span>
+        {exportEnabled && (
+          <span className="text-green-600">
+            Exported
+          </span>
         )}
-        
-        {/* Connection status */}
-        <div className="mt-2 text-xs text-center">
-          {data.connected ? (
-            <span className="text-green-600">● Connected</span>
-          ) : (
-            <span className="text-gray-500">○ Not connected</span>
-          )}
-        </div>
       </div>
     </div>
   );

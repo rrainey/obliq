@@ -1,6 +1,16 @@
+// lib/store/modelStore.ts
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { Model, Sheet, Block, Connection, createEmptyModel, createId } from '../models/modelSchema';
+import { 
+  Model, 
+  Sheet, 
+  Block, 
+  Connection, 
+  createEmptyModel, 
+  createId, 
+  updateBlockInModel,
+  validateModel
+} from '../models/modelSchema';
 
 interface ModelState {
   model: Model;
@@ -18,6 +28,7 @@ interface ModelState {
   addConnection: (connection: Connection) => void;
   removeConnection: (connectionId: string) => void;
   createNewModel: (name?: string) => void;
+  validateCurrentModel: () => boolean;
 }
 
 // Initial model
@@ -31,7 +42,13 @@ export const useModelStore = create<ModelState>()(
       isLoading: false,
       error: null,
 
-      setModel: (model) => set({ model }),
+      setModel: (model) => {
+        if (validateModel(model)) {
+          set({ model, currentSheetId: model.mainSheetId });
+        } else {
+          set({ error: 'Invalid model schema' });
+        }
+      },
 
       getCurrentSheet: () => {
         const { model, currentSheetId } = get();
@@ -74,27 +91,14 @@ export const useModelStore = create<ModelState>()(
 
       updateBlock: (blockId, updates) => {
         set(state => {
-          const newSheets = state.model.sheets.map(sheet => {
-            if (sheet.id === state.currentSheetId) {
-              return {
-                ...sheet,
-                blocks: sheet.blocks.map(block => 
-                  block.id === blockId 
-                    ? { ...block, ...updates, data: { ...block.data, ...updates.data } } 
-                    : block
-                )
-              };
-            }
-            return sheet;
-          });
-
-          return {
-            model: {
-              ...state.model,
-              sheets: newSheets,
-              updatedAt: new Date().toISOString()
-            }
-          };
+          const newModel = updateBlockInModel(
+            state.model, 
+            state.currentSheetId, 
+            blockId, 
+            updates
+          );
+          
+          return { model: newModel };
         });
       },
 
@@ -175,6 +179,11 @@ export const useModelStore = create<ModelState>()(
           currentSheetId: newModel.mainSheetId,
           error: null 
         });
+      },
+      
+      validateCurrentModel: () => {
+        const { model } = get();
+        return validateModel(model);
       }
     }),
     { name: 'model-store' }

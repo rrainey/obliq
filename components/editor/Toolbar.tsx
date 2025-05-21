@@ -1,3 +1,4 @@
+// components/editor/Toolbar.tsx
 'use client';
 
 import { useState } from 'react';
@@ -10,7 +11,22 @@ interface ToolbarProps {
 
 export default function Toolbar({ selectedNodeId, onShowProperties }: ToolbarProps) {
   const [showJson, setShowJson] = useState(false);
-  const { model } = useModelStore();
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const { model, validateCurrentModel } = useModelStore();
+
+  const handleValidate = () => {
+    const isValid = validateCurrentModel();
+    if (isValid) {
+      setValidationMessage('Model structure is valid!');
+    } else {
+      setValidationMessage('Model validation failed. Check connections and block configuration.');
+    }
+    
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      setValidationMessage(null);
+    }, 3000);
+  };
 
   return (
     <div className="bg-gray-100 border-b border-gray-300 p-2">
@@ -47,6 +63,22 @@ export default function Toolbar({ selectedNodeId, onShowProperties }: ToolbarPro
         >
           {showJson ? 'Hide JSON' : 'Show JSON'}
         </button>
+        <button
+          className="bg-teal-500 hover:bg-teal-600 text-white px-3 py-1 rounded text-sm ml-2"
+          onClick={handleValidate}
+        >
+          Validate
+        </button>
+        
+        {validationMessage && (
+          <span className={`ml-2 px-2 py-1 rounded text-sm ${
+            validationMessage.includes('valid') 
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-red-100 text-red-800'
+          }`}>
+            {validationMessage}
+          </span>
+        )}
       </div>
 
       {showJson && (

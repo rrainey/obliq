@@ -19,6 +19,16 @@ import { getNodeTypes } from '@/components/blocks/NodeTypes';
 import { useModelStore } from '@/lib/store/modelStore';
 import { toReactFlowNodes, toReactFlowEdges, fromReactFlowNodes, fromReactFlowEdges, createId } from '@/lib/models/modelSchema';
 import PropertiesPanel from '../editor/PropertiesPanel';
+import { Block, 
+         BlockData, 
+         InputPortBlockData, 
+         OutputPortBlockData, 
+         SumBlockData, 
+         MultiplyBlockData, 
+         TransferFunctionBlockData, 
+         LoggerBlockData, 
+         DisplayBlockData, 
+         SubsystemBlockData } from '@/lib/models/modelSchema';
 
 interface CanvasProps {
   onNodeSelect: (nodeId: string | null) => void;
@@ -120,6 +130,7 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
     console.log('ReactFlow instance initialized in Canvas');
   }, []);
 
+
   // Handle dropping a block from the sidebar onto the canvas
   const onDrop = useCallback(
     (event: React.DragEvent) => {
@@ -162,27 +173,45 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
         }
       };
 
-      // Create block data based on type
+      // Create block data based on type, using our type definitions
       const getBlockData = (type: string) => {
+        const uniqueId = createId();
         const baseData = { 
           label: getBlockLabel(type),
           description: `${getBlockLabel(type)} Block` 
         };
 
-        const uniqueId = createId();
-
         switch (type) {
           case 'sum':
-            return { ...baseData, inputCount: 2 };
+            return { 
+              ...baseData, 
+              inputCount: 2,
+              operationType: 'sum',
+              showInputLabels: true 
+            } as SumBlockData;
+          
           case 'multiply':
-            return { ...baseData, inputCount: 2 };
+            return { 
+              ...baseData, 
+              inputCount: 2,
+              operationType: 'multiply',
+              showInputLabels: true 
+            } as MultiplyBlockData;
+          
           case 'inputPort':
             return { 
               ...baseData, 
               value: 0,
               name: `input_${uniqueId}`,
               unit: '',
-            };
+              inputType: 'constant',
+              variableName: '',
+              signalShape: 'constant',
+              signalPeriod: 1,
+              signalAmplitude: 1,
+              signalOffset: 0
+            } as InputPortBlockData;
+          
           case 'outputPort':
             return { 
               ...baseData, 
@@ -190,7 +219,13 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
               value: null,
               connected: false,
               unit: '',
-            };
+              exportEnabled: false,
+              exportFormat: 'csv',
+              exportFilename: `output_${uniqueId}`,
+              history: [],
+              historyMaxLength: 1000
+            } as OutputPortBlockData;
+          
           case 'display':
             return { 
               ...baseData, 
@@ -202,9 +237,15 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
               precision: 2,
               unit: '',
               showUnit: true
-            };
+            } as DisplayBlockData;
+          
           case 'transferFunction':
-            return { ...baseData, numerator: '1', denominator: '1,1' };
+            return { 
+              ...baseData, 
+              numerator: '1', 
+              denominator: '1,1' 
+            } as TransferFunctionBlockData;
+          
           case 'logger':
             return { 
               ...baseData, 
@@ -213,14 +254,21 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
               maxEntries: 100,
               recording: true,
               unit: ''
-            };
+            } as LoggerBlockData;
+          
+          case 'subsystem':
+            return { 
+              ...baseData, 
+              sheetId: undefined 
+            } as SubsystemBlockData;
+          
           default:
-            return baseData;
+            return baseData as BlockData;
         }
       };
 
       // Create a new block
-      const newBlock = {
+      const newBlock: Block = {
         id: `${blockType}-${createId()}`,
         type: blockType,
         position,
@@ -245,7 +293,13 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
     nodesToDelete.forEach(node => {
       removeBlock(node.id);
     });
-  }, [removeBlock]);
+    
+    // Clear selected node if it was deleted
+    if (selectedNode && nodesToDelete.some(node => node.id === selectedNode.id)) {
+      setSelectedNode(null);
+      setShowProperties(false);
+    }
+  }, [removeBlock, selectedNode]);
 
   // Handle edge deletion
   const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
@@ -271,12 +325,14 @@ export default function Canvas({ onNodeSelect, onCloseProperties }: CanvasProps)
   // Handle node selection
   const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
     setSelectedNode(node);
-  }, []);
+    onNodeSelect(node.id);
+  }, [onNodeSelect]);
 
   // Handle canvas click (deselect)
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
-  }, []);
+    onNodeSelect(null);
+  }, [onNodeSelect]);
 
   // Toggle properties panel
   const toggleProperties = useCallback(() => {

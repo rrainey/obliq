@@ -1,115 +1,54 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { memo } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
-import { withNodeDataHandling } from '../withNodeDataHandling';
-
-export interface InputPortNodeData {
-  label: string;
-  description?: string;
-  value: number;
-  name?: string; // Signal name for code generation
-  unit?: string; // Optional unit for the value
-}
-
-interface InputPortNodeProps extends NodeProps<InputPortNodeData> {
-  onNodeDataChange?: (nodeId: string, data: Partial<InputPortNodeData>) => void;
-}
+import { InputPortBlockData } from '@/lib/models/modelSchema';
 
 const InputPortNode = ({ 
   data, 
   selected, 
   id, 
-  isConnectable, 
-  onNodeDataChange 
-}: InputPortNodeProps) => {
-  const [value, setValue] = useState(data.value || 0);
-  const [name, setName] = useState(data.name || '');
-  const [unit, setUnit] = useState(data.unit || '');
-
-  // Update state when props change
-  useEffect(() => {
-    setValue(data.value || 0);
-    setName(data.name || '');
-    setUnit(data.unit || '');
-  }, [data.value, data.name, data.unit]);
-
-  // Handle value change
-  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value) || 0;
-    setValue(newValue);
-    
-    // Update the model data
-    if (onNodeDataChange) {
-      onNodeDataChange(id, { value: newValue });
-    }
-  };
-
-  // Handle name change
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value;
-    setName(newName);
-    
-    // Update the model data
-    if (onNodeDataChange) {
-      onNodeDataChange(id, { name: newName });
-    }
-  };
-
-  // Handle unit change
-  const handleUnitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newUnit = e.target.value;
-    setUnit(newUnit);
-    
-    // Update the model data
-    if (onNodeDataChange) {
-      onNodeDataChange(id, { unit: newUnit });
-    }
-  };
+  isConnectable 
+}: NodeProps<InputPortBlockData>) => {
+  // Get the input value to display
+  const value = data.value !== undefined ? data.value : 0;
+  const unit = data.unit || '';
+  const signalName = data.name || 'input';
+  const inputType = data.inputType || 'constant';
 
   return (
-    <div className={`px-4 py-4 shadow-md rounded-md bg-white border-2 ${
-      selected ? 'border-blue-500' : 'border-gray-300'
-    } min-w-[150px]`}>
-      {/* Block content */}
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium">{data.label}</span>
-          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Input</span>
-        </div>
-        
-        {/* Signal name field */}
-        <div className="mb-2">
-          <label className="block text-xs text-gray-600 mb-1">Signal Name:</label>
-          <input
-            type="text"
-            value={name}
-            onChange={handleNameChange}
-            className="w-full p-1 text-sm border rounded nodrag"
-            placeholder="Enter signal name"
-          />
-        </div>
-        
-        {/* Value field */}
-        <div className="mb-2">
-          <label className="block text-xs text-gray-600 mb-1">Value:</label>
-          <div className="flex">
-            <input
-              type="number"
-              value={value}
-              onChange={handleValueChange}
-              className="w-full p-1 text-sm border rounded-l nodrag"
-              step="0.1"
-            />
-            <input
-              type="text"
-              value={unit}
-              onChange={handleUnitChange}
-              className="w-20 p-1 text-sm border border-l-0 rounded-r nodrag"
-              placeholder="Unit"
-            />
+    <div className={`relative px-4 py-3 shadow-md rounded-md bg-white border-2 ${
+      selected ? 'border-blue-500' : 'border-green-400'
+    } min-w-[140px]`}>
+      {/* Block header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-medium">{data.label}</div>
+        <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Input</div>
+      </div>
+      
+      {/* Value display */}
+      <div className="mb-2">
+        {inputType === 'constant' && (
+          <div className="p-1 bg-gray-100 rounded font-mono flex justify-between">
+            <span>{value}</span>
+            {unit && <span className="text-xs text-gray-500">{unit}</span>}
           </div>
-        </div>
+        )}
+        {inputType === 'signal' && (
+          <div className="p-1 bg-gray-100 rounded font-mono flex justify-between">
+            <span className="text-xs text-gray-500 italic">External Signal</span>
+          </div>
+        )}
+        {inputType === 'variable' && (
+          <div className="p-1 bg-gray-100 rounded font-mono flex justify-between">
+            <span className="text-xs text-gray-500 italic">Variable: {data.variableName}</span>
+          </div>
+        )}
+      </div>
+      
+      {/* Signal name */}
+      <div className="text-xs text-gray-500 truncate">
+        Signal: {signalName}
       </div>
 
       {/* Output handle */}
@@ -124,4 +63,4 @@ const InputPortNode = ({
   );
 };
 
-export default withNodeDataHandling(InputPortNode);
+export default memo(InputPortNode);

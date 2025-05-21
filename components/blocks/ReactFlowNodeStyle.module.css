@@ -1,0 +1,14 @@
+/* components/blocks/ReactFlowNodeStyles.module.css */
+.nodeInput {
+  pointer-events: all !important;
+}
+
+.nodeInput input,
+.nodeInput select,
+.nodeInput button {
+  pointer-events: all !important;
+}
+
+.nodeWrapper {
+  pointer-events: all;
+}
