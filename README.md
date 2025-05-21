@@ -1,8 +1,20 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a [Next.js](https://nextjs.org) project coming from experiments I performed using
+  both ChatGPT 4o and Claude 3.7 to translate architecture specifications into working code.
+
+It is a work in progress and is not functionally complete.
 
 ## Getting Started
 
+The application is based on Next.js utilizing Supabase for persistent storage.
+
 First, run the development server:
+
+```bash
+#install components and initialize database
+npm install
+npx supabase init
+npx supabase start -x vector
+```
 
 ```bash
 npm run dev
@@ -22,9 +34,9 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Architecture and MVP Implementation Tasks
 
-The application architecture is described in design/archiecture.md - the required implementation tasks to construct the MVP are outlined in design/tasks.md
+The application architecture is described in ```design/archiecture.md``` - the required implementation tasks to construct the MVP are outlined in ```design/tasks.md```
 
-We are working down the task list sequentially.  The next task to be implemented will be "Implement Output Port Block Node".
+I am currently using Claude as a coding companion. We are working down the task list sequentially.  The next task to be implemented will be "Implement Output Port Block Node".
 
 ## Learn More
 
