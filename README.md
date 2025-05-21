@@ -1,3 +1,5 @@
+# obliq - an experimental Modeling and Simulation application created by 1H2025-era Generative LLMs
+
 This is a [Next.js](https://nextjs.org) project coming from experiments I performed using
   both ChatGPT 4o and Claude 3.7 to translate architecture specifications into working code.
 
