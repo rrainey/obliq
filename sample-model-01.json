@@ -1,0 +1,115 @@
+{
+  "id": "default-model",
+  "name": "New Model",
+  "description": "",
+  "createdAt": "2025-05-22T18:23:50.006Z",
+  "updatedAt": "2025-05-22T18:24:26.865Z",
+  "sheets": [
+    {
+      "id": "main-sheet",
+      "name": "Main",
+      "blocks": [
+        {
+          "id": "inputPort-gv3n36hlp",
+          "type": "inputPort",
+          "position": {
+            "x": 285,
+            "y": 240
+          },
+          "data": {
+            "label": "Input",
+            "description": "Input Block",
+            "value": 0,
+            "name": "input_3doo1njaj",
+            "unit": "",
+            "inputType": "constant",
+            "variableName": "",
+            "signalShape": "constant",
+            "signalPeriod": 1,
+            "signalAmplitude": 1,
+            "signalOffset": 0
+          }
+        },
+        {
+          "id": "inputPort-9h68xrhbq",
+          "type": "inputPort",
+          "position": {
+            "x": 210,
+            "y": 465
+          },
+          "data": {
+            "label": "Input",
+            "description": "Input Block",
+            "value": 0,
+            "name": "input_yp1wb7uvf",
+            "unit": "",
+            "inputType": "constant",
+            "variableName": "",
+            "signalShape": "constant",
+            "signalPeriod": 1,
+            "signalAmplitude": 1,
+            "signalOffset": 0
+          }
+        },
+        {
+          "id": "sum-61x2nu1q1",
+          "type": "sum",
+          "position": {
+            "x": 630,
+            "y": 405
+          },
+          "data": {
+            "label": "Sum",
+            "description": "Sum Block",
+            "inputCount": 2,
+            "operationType": "sum",
+            "showInputLabels": true
+          }
+        },
+        {
+          "id": "display-tbrzm7gb9",
+          "type": "display",
+          "position": {
+            "x": 945,
+            "y": 450
+          },
+          "data": {
+            "label": "Display",
+            "description": "Display Block",
+            "value": null,
+            "connected": true,
+            "displayMode": "value",
+            "min": 0,
+            "max": 100,
+            "precision": 2,
+            "unit": "",
+            "showUnit": true
+          }
+        }
+      ],
+      "connections": [
+        {
+          "id": "edge-9mdd7doe0",
+          "sourceNodeId": "inputPort-gv3n36hlp",
+          "sourceHandleId": "out",
+          "targetNodeId": "sum-61x2nu1q1",
+          "targetHandleId": "in1"
+        },
+        {
+          "id": "edge-cxvmks4eg",
+          "sourceNodeId": "inputPort-9h68xrhbq",
+          "sourceHandleId": "out",
+          "targetNodeId": "sum-61x2nu1q1",
+          "targetHandleId": "in2"
+        },
+        {
+          "id": "edge-k8dqii1wa",
+          "sourceNodeId": "sum-61x2nu1q1",
+          "sourceHandleId": "out",
+          "targetNodeId": "display-tbrzm7gb9",
+          "targetHandleId": "in"
+        }
+      ]
+    }
+  ]
+}

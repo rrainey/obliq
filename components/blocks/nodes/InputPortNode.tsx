@@ -1,8 +1,16 @@
+// components/blocks/nodes/InputPortNode.tsx - Refactored for external input only
 'use client';
 
 import { memo } from 'react';
 import { Position, NodeProps, Handle } from 'reactflow';
-import { InputPortBlockData } from '@/lib/models/modelSchema';
+
+export interface InputPortBlockData {
+  label: string;
+  description?: string;
+  name: string; // Required for input ports
+  unit?: string;
+  defaultValue?: number; // Default value when not connected externally
+}
 
 const InputPortNode = ({ 
   data, 
@@ -10,11 +18,9 @@ const InputPortNode = ({
   id, 
   isConnectable 
 }: NodeProps<InputPortBlockData>) => {
-  // Get the input value to display
-  const value = data.value !== undefined ? data.value : 0;
+  const inputName = data.name || 'input';
   const unit = data.unit || '';
-  const signalName = data.name || 'input';
-  const inputType = data.inputType || 'constant';
+  const defaultValue = data.defaultValue !== undefined ? data.defaultValue : 0;
 
   return (
     <div className={`relative px-4 py-3 shadow-md rounded-md bg-white border-2 ${
@@ -22,33 +28,21 @@ const InputPortNode = ({
     } min-w-[140px]`}>
       {/* Block header */}
       <div className="flex items-center justify-between mb-2">
-        <div className="text-sm font-medium">{data.label}</div>
-        <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Input</div>
+        <div className="text-sm font-semibold text-gray-900">{data.label}</div>
+        <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">Input</div>
       </div>
       
-      {/* Value display */}
+      {/* Input name display */}
       <div className="mb-2">
-        {inputType === 'constant' && (
-          <div className="p-1 bg-gray-100 rounded font-mono flex justify-between">
-            <span>{value}</span>
-            {unit && <span className="text-xs text-gray-500">{unit}</span>}
-          </div>
-        )}
-        {inputType === 'signal' && (
-          <div className="p-1 bg-gray-100 rounded font-mono flex justify-between">
-            <span className="text-xs text-gray-500 italic">External Signal</span>
-          </div>
-        )}
-        {inputType === 'variable' && (
-          <div className="p-1 bg-gray-100 rounded font-mono flex justify-between">
-            <span className="text-xs text-gray-500 italic">Variable: {data.variableName}</span>
-          </div>
-        )}
+        <div className="p-1 bg-gray-100 rounded text-center">
+          <div className="text-sm font-semibold text-gray-900">{inputName}</div>
+          {unit && <div className="text-xs text-gray-700">[{unit}]</div>}
+        </div>
       </div>
       
-      {/* Signal name */}
-      <div className="text-xs text-gray-500 truncate">
-        Signal: {signalName}
+      {/* Default value info */}
+      <div className="text-xs text-gray-700 font-medium text-center">
+        Default: {defaultValue}{unit ? ` ${unit}` : ''}
       </div>
 
       {/* Output handle */}

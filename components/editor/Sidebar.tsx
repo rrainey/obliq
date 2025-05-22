@@ -1,108 +1,173 @@
+// components/editor/Sidebar.tsx - Updated with Source node
 'use client';
 
 import { useState } from 'react';
-import BlockIcon from '@/components/blocks/BlockIcon';
 
-// Define block types and metadata
-const blockCategories = [
+interface BlockType {
+  id: string;
+  label: string;
+  description: string;
+  category: 'input_output' | 'math' | 'control' | 'display' | 'structure';
+  color: string;
+}
+
+const blockTypes: BlockType[] = [
+  // Input/Output blocks
   {
-    name: 'Basic',
-    items: [
-      { id: 'sum', name: 'Sum', description: 'Add two or more inputs' },
-      { id: 'multiply', name: 'Multiply', description: 'Multiply two or more inputs' },
-    ],
+    id: 'inputPort',
+    label: 'Input Port',
+    description: 'External input interface',
+    category: 'input_output',
+    color: 'bg-green-100 border-green-400 text-green-800'
   },
   {
-    name: 'Ports',
-    items: [
-      { id: 'inputPort', name: 'Input Port', description: 'Define an input to the model' },
-      { id: 'outputPort', name: 'Output Port', description: 'Define an output from the model' },
-    ],
+    id: 'source',
+    label: 'Source',
+    description: 'Internal signal generator',
+    category: 'input_output', 
+    color: 'bg-amber-100 border-amber-400 text-amber-800'
   },
   {
-    name: 'Dynamic',
-    items: [
-      { id: 'transferFunction', name: 'Transfer Function', description: 'Apply a transfer function to the input' },
-    ],
+    id: 'outputPort',
+    label: 'Output Port',
+    description: 'External output interface',
+    category: 'input_output',
+    color: 'bg-red-100 border-red-400 text-red-800'
+  },
+  
+  // Math blocks
+  {
+    id: 'sum',
+    label: 'Sum',
+    description: 'Add or subtract signals',
+    category: 'math',
+    color: 'bg-blue-100 border-blue-400 text-blue-800'
   },
   {
-    name: 'Visualization',
-    items: [
-      { id: 'display', name: 'Display', description: 'Show the value of a signal' },
-      { id: 'logger', name: 'Logger', description: 'Log signal values over time' },
-    ],
+    id: 'multiply',
+    label: 'Multiply',
+    description: 'Multiply or divide signals',
+    category: 'math',
+    color: 'bg-blue-100 border-blue-400 text-blue-800'
+  },
+  
+  // Control blocks
+  {
+    id: 'transferFunction',
+    label: 'Transfer Function',
+    description: 'Linear dynamic system',
+    category: 'control',
+    color: 'bg-purple-100 border-purple-400 text-purple-800'
+  },
+  
+  // Display blocks
+  {
+    id: 'display',
+    label: 'Display',
+    description: 'Show signal value',
+    category: 'display',
+    color: 'bg-gray-100 border-gray-400 text-gray-800'
   },
   {
-    name: 'Advanced',
-    items: [
-      { id: 'subsystem', name: 'Subsystem', description: 'Create a hierarchical model' },
-    ],
+    id: 'logger',
+    label: 'Logger',
+    description: 'Record signal history',
+    category: 'display',
+    color: 'bg-gray-100 border-gray-400 text-gray-800'
   },
+  
+  // Structure blocks
+  {
+    id: 'subsystem',
+    label: 'Subsystem',
+    description: 'Hierarchical block container',
+    category: 'structure',
+    color: 'bg-indigo-100 border-indigo-400 text-indigo-800'
+  }
 ];
 
+const categoryNames = {
+  input_output: 'Input/Output',
+  math: 'Math Operations',
+  control: 'Control Systems',
+  display: 'Display & Logging',
+  structure: 'Structure'
+};
+
 export default function Sidebar() {
-  // Track active category for collapsible sections
-  const [activeCategory, setActiveCategory] = useState<string | null>(blockCategories[0].name);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Toggle category collapse/expand
-  const toggleCategory = (categoryName: string) => {
-    if (activeCategory === categoryName) {
-      setActiveCategory(null);
-    } else {
-      setActiveCategory(categoryName);
-    }
-  };
-
-  // Track the block being dragged - this is critical
-  const onDragStart = (event: React.DragEvent<HTMLDivElement>, blockType: string) => {
-    console.log(`Dragging started: ${blockType}`); // Add logging
-    
-    // Set the block type as drag data - ensure this format matches what Canvas expects
+  // Handle drag start
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, blockType: string) => {
     event.dataTransfer.setData('application/reactflow', blockType);
     event.dataTransfer.effectAllowed = 'move';
   };
 
+  // Group blocks by category
+  const blocksByCategory = blockTypes.reduce((acc, block) => {
+    if (!acc[block.category]) {
+      acc[block.category] = [];
+    }
+    acc[block.category].push(block);
+    return acc;
+  }, {} as Record<string, BlockType[]>);
+
+  const filteredBlocks = selectedCategory 
+    ? blocksByCategory[selectedCategory] || []
+    : blockTypes;
+
   return (
-    <aside className="w-64 bg-gray-100 p-4 border-r overflow-y-auto">
-      <h2 className="text-lg font-semibold mb-4">Blocks</h2>
-      
-      <div className="space-y-2">
-        {blockCategories.map((category) => (
-          <div key={category.name} className="mb-2">
-            <button
-              className="w-full flex items-center justify-between bg-gray-200 p-2 rounded text-left font-medium text-gray-700 hover:bg-gray-300"
-              onClick={() => toggleCategory(category.name)}
-            >
-              <span>{category.name}</span>
-              <span>{activeCategory === category.name ? '−' : '+'}</span>
-            </button>
-            
-            {activeCategory === category.name && (
-              <div className="mt-2 space-y-2">
-                {category.items.map((block) => (
-                  <div
-                    key={block.id}
-                    className="flex items-center bg-white p-2 border border-gray-300 rounded cursor-move hover:bg-gray-50 shadow-sm"
-                    draggable
-                    onDragStart={(event) => onDragStart(event, block.id)}
-                    title={block.description}
-                  >
-                    <div className="mr-3">
-                      <BlockIcon type={block.id} />
-                    </div>
-                    <div>
-                      <div className="font-medium">{block.name}</div>
-                      <div className="text-xs text-gray-500 truncate max-w-[160px]">
-                        {block.description}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+    <div className="w-64 bg-gray-50 border-r border-gray-300 flex flex-col">
+      {/* Header */}
+      <div className="p-3 border-b border-gray-300">
+        <h2 className="text-lg font-semibold text-gray-900">Block Library</h2>
+        <p className="text-sm text-gray-600 mt-1">Drag blocks onto the canvas</p>
       </div>
-    </aside>
+
+      {/* Category filter */}
+      <div className="p-3 border-b border-gray-200">
+        <select
+          value={selectedCategory || ''}
+          onChange={(e) => setSelectedCategory(e.target.value || null)}
+          className="w-full p-2 border rounded text-gray-900 text-sm"
+        >
+          <option value="">All Categories</option>
+          {Object.entries(categoryNames).map(([key, name]) => (
+            <option key={key} value={key}>{name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Block list */}
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="space-y-2">
+          {filteredBlocks.map((block) => (
+            <div
+              key={block.id}
+              className={`p-3 border-2 border-dashed rounded cursor-move hover:shadow-md transition-shadow ${block.color}`}
+              draggable
+              onDragStart={(e) => handleDragStart(e, block.id)}
+            >
+              <div className="font-medium text-sm">{block.label}</div>
+              <div className="text-xs mt-1 opacity-80">{block.description}</div>
+            </div>
+          ))}
+        </div>
+        
+        {filteredBlocks.length === 0 && (
+          <div className="text-center text-gray-500 mt-4">
+            <p className="text-sm">No blocks in this category</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="p-3 border-t border-gray-200">
+        <div className="text-xs text-gray-600">
+          <div>Total blocks: {blockTypes.length}</div>
+          <div>Categories: {Object.keys(categoryNames).length}</div>
+        </div>
+      </div>
+    </div>
   );
 }

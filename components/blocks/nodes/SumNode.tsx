@@ -1,4 +1,4 @@
-// components/blocks/nodes/SumNode.tsx (update)
+// components/blocks/nodes/SumNode.tsx - Updated for better contrast
 'use client';
 
 import { memo } from 'react';
@@ -33,7 +33,7 @@ const SumNode = ({
             isConnectable={isConnectable}
           />
           {showInputLabels && (
-            <span className="text-xs text-gray-500 ml-1 absolute left-3" style={{ transform: 'translateY(-50%)' }}>
+            <span className="text-xs text-gray-800 font-medium ml-1 absolute left-3" style={{ transform: 'translateY(-50%)' }}>
               {i === 0 && operationType === 'difference' ? 'minuend' : `in ${i+1}`}
             </span>
           )}
@@ -53,8 +53,8 @@ const SumNode = ({
 
       {/* Block content */}
       <div className="flex flex-col items-center mt-2">
-        <div className="text-xs text-gray-500 mb-2">{data.label}</div>
-        <div className="text-3xl font-bold">{operationType === 'sum' ? '+' : '−'}</div>
+        <div className="text-xs text-gray-800 font-semibold mb-2">{data.label}</div>
+        <div className="text-3xl font-bold text-gray-900">{operationType === 'sum' ? '+' : '−'}</div>
       </div>
 
       {/* Output handle */}
@@ -67,7 +67,7 @@ const SumNode = ({
           isConnectable={isConnectable}
         />
         {showInputLabels && (
-          <span className="text-xs text-gray-500 mr-5 absolute right-0" style={{ transform: 'translateY(-50%)' }}>
+          <span className="text-xs text-gray-800 font-medium mr-5 absolute right-0" style={{ transform: 'translateY(-50%)' }}>
             out
           </span>
         )}

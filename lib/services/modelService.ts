@@ -27,8 +27,9 @@ export async function saveModelToSupabase(
       };
     }
 
-    // Prepare model data for storage
+    // Prepare model data for storage - FIXED: Added user_id
     const modelData = {
+      user_id: user.id,  // THIS WAS MISSING!
       name: name.trim(),
       description: description.trim(),
       data: {

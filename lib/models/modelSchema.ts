@@ -1,4 +1,4 @@
-// lib/models/modelSchema.ts
+// lib/models/modelSchema.ts - Updated with Source block and enhanced Subsystem
 import { Node, Edge } from 'reactflow';
 
 // Utility function to create unique IDs
@@ -25,16 +25,24 @@ export interface MultiplyBlockData extends BlockData {
   showInputLabels?: boolean;
 }
 
+// Updated InputPortBlockData (external input only)
 export interface InputPortBlockData extends BlockData {
+  name: string; // Required for input ports
+  unit?: string;
+  defaultValue?: number; // Default value when not connected externally
+}
+
+// New SourceBlockData (internal signal generation)
+export interface SourceBlockData extends BlockData {
   value: number;
   name?: string;
   unit?: string;
-  inputType?: 'constant' | 'signal' | 'variable';
-  variableName?: string;
-  signalShape?: 'constant' | 'sine' | 'square' | 'ramp';
-  signalPeriod?: number;
-  signalAmplitude?: number;
-  signalOffset?: number;
+  sourceType?: 'constant' | 'sine';
+  // Sine wave parameters
+  amplitude?: number;
+  frequency?: number; // Hz
+  phase?: number; // radians
+  offset?: number;
 }
 
 export interface OutputPortBlockData extends BlockData {
@@ -79,8 +87,11 @@ export interface TransferFunctionBlockData extends BlockData {
   showEquation?: boolean;
 }
 
+// Enhanced SubsystemBlockData with embedded sheet
 export interface SubsystemBlockData extends BlockData {
-  sheetId?: string;
+  sheet?: Sheet; // Embedded sheet definition
+  inputHandles?: Array<{ id: string; name: string; unit?: string }>; // Cached for performance
+  outputHandles?: Array<{ id: string; name: string; unit?: string }>; // Cached for performance
 }
 
 // Block definition
@@ -89,7 +100,7 @@ export interface Block {
   type: string;
   position: { x: number; y: number };
   data: BlockData | SumBlockData | MultiplyBlockData | InputPortBlockData | 
-        OutputPortBlockData | DisplayBlockData | LoggerBlockData | 
+        SourceBlockData | OutputPortBlockData | DisplayBlockData | LoggerBlockData | 
         TransferFunctionBlockData | SubsystemBlockData;
 }
 
@@ -161,4 +172,30 @@ export const fromReactFlowEdges = (edges: Edge[]): Connection[] => {
     targetNodeId: edge.target,
     targetHandleId: edge.targetHandle || 'default',
   }));
+};
+
+// Utility function to analyze subsystem handles
+export const analyzeSubsystemHandles = (sheet: Sheet) => {
+  const inputHandles: Array<{ id: string; name: string; unit?: string }> = [];
+  const outputHandles: Array<{ id: string; name: string; unit?: string }> = [];
+
+  sheet.blocks.forEach(block => {
+    if (block.type === 'inputPort') {
+      const data = block.data as InputPortBlockData;
+      inputHandles.push({
+        id: data.name || `input_${block.id}`,
+        name: data.name || 'input',
+        unit: data.unit
+      });
+    } else if (block.type === 'outputPort') {
+      const data = block.data as OutputPortBlockData;
+      outputHandles.push({
+        id: data.name || `output_${block.id}`,
+        name: data.name || 'output',
+        unit: data.unit
+      });
+    }
+  });
+
+  return { inputHandles, outputHandles };
 };

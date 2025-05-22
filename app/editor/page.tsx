@@ -1,6 +1,7 @@
+// app/editor/page.tsx - Debug version
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import ProtectedRoute from '@/lib/auth/ProtectedRoute';
 import { useAuth } from '@/lib/auth/AuthContext';
 import Link from 'next/link';
@@ -27,8 +28,19 @@ function EditorContent() {
   const [isSimulationRunning, setIsSimulationRunning] = useState(false);
   const [simulationTime, setSimulationTime] = useState(0);
   
+  // Debug logging for selectedNodeId changes
+  useEffect(() => {
+    console.log('Page: selectedNodeId changed to:', selectedNodeId);
+  }, [selectedNodeId]);
+  
+  // Debug logging for showProperties changes
+  useEffect(() => {
+    console.log('Page: showProperties changed to:', showProperties);
+  }, [showProperties]);
+  
   // Handle properties button click
   const handleShowProperties = useCallback(() => {
+    console.log('Page: handleShowProperties called, selectedNodeId:', selectedNodeId);
     if (selectedNodeId) {
       setShowProperties(true);
     }
@@ -36,6 +48,7 @@ function EditorContent() {
   
   // Update selected node
   const handleNodeSelect = useCallback((nodeId: string | null) => {
+    console.log('Page: handleNodeSelect called with:', nodeId);
     setSelectedNodeId(nodeId);
     
     // Auto-hide properties panel when deselecting a node
@@ -46,6 +59,7 @@ function EditorContent() {
   
   // Close properties panel
   const handleCloseProperties = useCallback(() => {
+    console.log('Page: handleCloseProperties called');
     setShowProperties(false);
   }, []);
   
@@ -86,6 +100,12 @@ function EditorContent() {
           <h1 className="text-2xl font-bold">obliq Editor</h1>
           <div className="flex items-center space-x-4">
             <span className="text-sm">Logged in as {user?.email}</span>
+            
+            {/* DEBUG INFO */}
+            <div className="text-xs bg-yellow-500 text-black px-2 py-1 rounded">
+              Page State - Selected: {selectedNodeId || 'None'} | Props: {showProperties ? 'Open' : 'Closed'}
+            </div>
+            
             <Link
               href="/"
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded focus:outline-none focus:shadow-outline text-sm"

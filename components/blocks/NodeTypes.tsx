@@ -1,6 +1,8 @@
+// components/blocks/NodeTypes.ts - Updated with Source node
 import SumNode from './nodes/SumNode';
 import MultiplyNode from './nodes/MultiplyNode';
 import InputPortNode from './nodes/InputPortNode';
+import SourceNode from './nodes/SourceNode';
 import OutputPortNode from './nodes/OutputPortNode';
 import DisplayNode from './nodes/DisplayNode';
 import LoggerNode from './nodes/LoggerNode';
@@ -13,15 +15,25 @@ interface NodeTypesMap {
 }
 
 // Function to create a nodeTypes object
-export const getNodeTypes = (onNodeDataChange: (nodeId: string, data: any) => void): NodeTypesMap => {
+export const getNodeTypes = (
+  onNodeDataChange: (nodeId: string, data: any) => void,
+  onSubsystemDoubleClick?: (nodeId: string, sheet?: any) => void
+): NodeTypesMap => {
+  
+  // Create a wrapped SubsystemNode that includes the double-click handler
+  const WrappedSubsystemNode = (props: any) => (
+    <SubsystemNode {...props} onDoubleClick={onSubsystemDoubleClick} />
+  );
+
   return {
     sum: SumNode,
     multiply: MultiplyNode,
     inputPort: InputPortNode,
+    source: SourceNode,
     outputPort: OutputPortNode,
     display: DisplayNode,
     logger: LoggerNode,
     transferFunction: TransferFunctionNode,
-    subsystem: SubsystemNode,
+    subsystem: WrappedSubsystemNode,
   };
 };
