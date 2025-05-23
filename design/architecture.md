@@ -80,6 +80,7 @@ One of the most critical parts of the app is the **visual modeling canvas** wher
 * **Signal Display Block** – an output-only block that graphically displays a signal (for simulation visualization purposes; no outputs).
 * **Signal Logger Block** – an output-only block that logs a signal’s values during simulation (could be used to export data later; no outputs).
 * **Input Port Block** – a source block representing an external input (no inputs, one output). This would be where external signals enter a subsystem or top-level model.
+* **Source Block** - a source block providing either a constant or signal-generator-style signal source (no inputs, one output). 
 * **Output Port Block** – a sink block representing an external output (one input, no outputs) to mark signals that leave a subsystem or top-level model.
 * **Subsystem Block** – a special block that contains a nested diagram (hierarchical composition). A Subsystem has its own internal sheet with blocks and can have defined input/output interface ports. In the parent sheet, the Subsystem block appears as a block with those ports.
 
